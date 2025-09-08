@@ -1,0 +1,291 @@
+{
+  "name": "News update on Email",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        1168,
+        -80
+      ],
+      "id": "1c7f7dd2-bf36-4a60-b83c-ca5bf1c8577b",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "url": "https://www.espn.com/espn/rss/news",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        1456,
+        -256
+      ],
+      "id": "b1fe2b11-2844-4e01-874c-ffbabfd2861f",
+      "name": "RSS Read"
+    },
+    {
+      "parameters": {
+        "url": "https://techcrunch.com/feed/",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        1456,
+        -80
+      ],
+      "id": "b87142bf-ca85-4b26-ba04-fca6a96d691e",
+      "name": "RSS Read1"
+    },
+    {
+      "parameters": {
+        "url": "https://timesofindia.indiatimes.com/rssfeedstopstories.cms",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        1456,
+        96
+      ],
+      "id": "ccb6d730-b878-4eff-a142-2f99489a7a4e",
+      "name": "RSS Read2"
+    },
+    {
+      "parameters": {
+        "numberInputs": 3
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1952,
+        -96
+      ],
+      "id": "7154c118-e4df-4ef1-9f86-a6f6bb029ff1",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "sendTo": "examplemail@gmail.com",
+        "subject": "=DAILY NEWS DIGEST - {{ $json.date || $now }}",
+        "message": "={{ $json.body }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        2544,
+        -80
+      ],
+      "id": "c82db739-5ef2-4845-b4c6-0872b27fc9c6",
+      "name": "Send a message"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Collect all categories and format digest\nlet digest = \"\";\n\nfor (const categoryObj of items.map(i => i.json)) {\n  for (const [category, articles] of Object.entries(categoryObj)) {\n    digest += `\\n${category}:\\n`;\n    articles.slice(0, 5).forEach(article => {\n      digest += `- ${article.title} (${article.link})\\n`;\n    });\n  }\n}\n\nreturn [{ json: { digest } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2144,
+        -80
+      ],
+      "id": "835cb0e0-f8dd-4dc3-9cb5-f4aee6b90f5c",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst top3News = items.slice(0, 3).map((item) => {\n  return {\n    title: item?.json?.title,\n    link: item?.json?.link,\n  };\n});\n\nreturn { Technology: top3News };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1664,
+        -80
+      ],
+      "id": "a3985d2c-a95e-431f-9cfe-2aa7748797dc",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst top3News = items.slice(0, 3).map((item) => {\n  return {\n    title: item?.json?.title,\n    link: item?.json?.link,\n  };\n});\n\nreturn { Sports: top3News };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1664,
+        -256
+      ],
+      "id": "a5d2dd84-32b4-49ac-9df7-c65184ba3e2e",
+      "name": "Code2"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst top3News = items.slice(0, 3).map((item) => {\n  return {\n    title: item?.json?.title,\n    link: item?.json?.link,\n  };\n});\n\nreturn { India: top3News };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1664,
+        96
+      ],
+      "id": "720aee43-d686-4202-9600-c60ccf12c966",
+      "name": "Code3"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Robust n8n Function Item: build HTML with bullet links per category\nconst raw = $json.digest || '';\nif (!raw || raw.trim().length === 0) {\n  return [{ body: '&lt;p>No digest content&lt;/p>' }];\n}\n\n// Helpers\nconst urlRegex = /(https?:\\/\\/[^\\s)&lt;>\"]+)/g;\nfunction escapeHtml(s) {\n  if (!s) return '';\n  return s.replace(/&/g,'&amp;').replace(/&lt;/g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;').replace(/'/g,'&#039;');\n}\nfunction shortLabel(url) {\n  try {\n    const u = new URL(url);\n    return u.hostname + u.pathname.replace(/\\/.+$/,''); // short-ish label\n  } catch(e){ return url; }\n}\n\n// Normalize and split lines\nconst lines = raw.replace(/\\r/g,'').split('\\n').map(l => l.trim());\n\n// Skip top title like \"Daily News Digest\" if present\nlet idx = 0;\nif (lines[0] && /daily\\s+news/i.test(lines[0])) idx = 1;\n\n// Parse\nconst sections = {}; \nlet current = 'General';\nsections[current] = [];\n\nfor (; idx &lt; lines.length; idx++) {\n  const line = lines[idx];\n  if (!line) continue;\n\n  // Identify header lines: words only, no leading hyphen, short-ish\n  if (/^[A-Za-z &\\-]{2,40}$/.test(line) && !line.startsWith('-') && line.length &lt;= 40 && /[A-Za-z]/.test(line)) {\n    current = line.replace(/:$/,'').trim();\n    if (!sections[current]) sections[current] = [];\n    continue;\n  }\n\n  // Extract any URLs on the line\n  const found = [...line.matchAll(urlRegex)].map(m => m[1]);\n\n  if (found.length) {\n    // add all found urls to the current section\n    found.forEach(u => sections[current].push(u));\n    continue;\n  }\n\n  // If line doesn't contain url, check the next line (sometimes URL on next line)\n  if (idx + 1 &lt; lines.length) {\n    const next = lines[idx + 1].trim();\n    const nextFound = [...next.matchAll(urlRegex)].map(m => m[1]);\n    if (nextFound.length) {\n      nextFound.forEach(u => sections[current].push(u));\n      idx++; // skip next line because we consumed its URL\n      continue;\n    }\n  }\n\n  // Also check if the line contains a url wrapped in parentheses with whitespace broken\n  // e.g. Title ( https://... )\n  const parenUrl = line.match(/\\(\\s*(https?:\\/\\/[^\\s)]+)\\s*\\)/);\n  if (parenUrl) {\n    sections[current].push(parenUrl[1]);\n    continue;\n  }\n\n  // no url found; ignore plain titles if you want links-only output\n}\n\n// Remove empty sections with no links (optional)\nfor (const k of Object.keys(sections)) {\n  if (!sections[k] || sections[k].length === 0) delete sections[k];\n}\n\nif (Object.keys(sections).length === 0) {\n  // fallback: try to extract any URL anywhere in raw and put under General\n  const all = [...raw.matchAll(urlRegex)].map(m => m[1]);\n  if (all.length) sections['General'] = all;\n}\n\n// Build HTML\nlet html = `&lt;h1>Daily News Digest&lt;/h1>\\n`;\nfor (const [section, links] of Object.entries(sections)) {\n  html += `&lt;h2>${escapeHtml(section)}&lt;/h2>\\n&lt;ul>\\n`;\n  for (const link of links) {\n    const label = escapeHtml(link); // show full link; change to shortLabel(link) if preferred\n    html += `  &lt;li>&lt;a href=\"${escapeHtml(link)}\" target=\"_blank\" rel=\"noopener\">${label}&lt;/a>&lt;/li>\\n\\n`;\n  }\n  html += `&lt;/ul>\\n`;\n}\n\nreturn [{ body: html }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2352,
+        -80
+      ],
+      "id": "44bfb946-90a2-4532-b293-15b31216fc9a",
+      "name": "Code4"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "RSS Read",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "RSS Read1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "RSS Read2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS Read2": {
+      "main": [
+        [
+          {
+            "node": "Code3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS Read": {
+      "main": [
+        [
+          {
+            "node": "Code2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS Read1": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Code4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Code2": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code3": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Code4": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "259ae003-cfd3-44ab-92d5-81c0e6f4a512",
+  "meta": {},
+  "id": "soyNczFwZQkJZt5z",
+  "tags": []
+}
