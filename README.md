@@ -20,7 +20,7 @@ The workflow is exported from [n8n](https://n8n.io) and can be imported into you
 ## How to Use
 
 ### 1. Import into n8n
-Download workflow: [workflow](index.html)  
+Download workflow: [workflow](NewsToEmail.json)  
 
 
 
